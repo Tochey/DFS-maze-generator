@@ -43,6 +43,7 @@ class Maze {
         ctx!.strokeStyle = 'black';
         ctx!.fillStyle = "white"
         ctx!.lineWidth = 1
+        curr.visited = true
 
 
         ctx?.fillRect(curr.xPosition + 1, curr.yPosition + 1, curr.gridSize / curr.globalColumnSize - 2, curr.gridSize / curr.globalRowSize - 2)
@@ -54,7 +55,7 @@ class Maze {
                 grid[r][c].drawCell(this.size, this.rows, this.columns);
             }
         }
-        curr.visited = true
+      
         curr.highlight('purple')
        
         let next = curr.pickRandomNeighbor();
@@ -68,7 +69,6 @@ class Maze {
         } else if (this.stack.length > 0) {
             curr = this.stack.pop()
             console.log(`popping ${curr.rowNumber + " " + curr.columnNumber}`)
-          
         }
 
         if(this.stack.length === 0){
