@@ -1,16 +1,16 @@
-let maze : HTMLCanvasElement = document.querySelector(".maze") as HTMLCanvasElement;
+let maze: HTMLCanvasElement = document.querySelector(".maze") as HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D | null = maze.getContext("2d");
-let curr: Cell 
+let curr: Cell | undefined
 
-
+//DFS MAZE GENERATOR
 
 class Maze {
 
-    size: number;
-    rows: number;
-    columns: number;
-    grid: Array<Array<Cell>>;
-    stack: Array<Cell>;
+    private size: number;
+    private rows: number;
+    private columns: number;
+    private grid: Array<Array<Cell>>;
+    private stack: Array<Cell>;
 
     constructor(size: number, rows: number, columns: number) {
         this.size = size;
@@ -26,7 +26,7 @@ class Maze {
         for (let r = 0; r < this.rows; r++) {
             let row: Array<Cell> = [];
             for (let c = 0; c < this.columns; c++) {
-                let cell : Cell = new Cell(r, c, this.grid, this.size, this.rows, this.columns);
+                let cell: Cell = new Cell(r, c, this.grid, this.size, this.rows, this.columns);
                 row.push(cell);
             }
             this.grid.push(row);
@@ -36,17 +36,11 @@ class Maze {
     }
 
     draw() {
-        
+
         maze.width = this.size;
         maze.height = this.size;
-        maze.style.background = "white";
-        ctx!.strokeStyle = 'black';
-        ctx!.fillStyle = "white"
-        ctx!.lineWidth = 1
-        curr.isVisited = true
-
-
-        ctx?.fillRect(curr.xPos + 1, curr.yPos + 1, curr.parentGridSize / curr.columnSize - 2, curr.parentGridSize / curr.rowSize - 2)
+        maze.style.background = "blue";
+        curr!.isVisited = true
 
         //draw out grid
         for (let r = 0; r < this.rows; r++) {
@@ -55,35 +49,37 @@ class Maze {
                 grid[r][c].drawCell(this.size, this.rows, this.columns);
             }
         }
-      
-        curr.highlight('purple')
-       
-        let next = curr.pickRandomNeighbor();
+
+        let next = curr!.pickRandomNeighbor()
 
         if (next) {
             next.isVisited = true
-            this.stack.push(curr)
-            console.log( curr)
-            curr.removecellWalls(curr, next)
+            this.stack.push(curr!)
+            curr!.highlight('red')
+            console.log(curr)
+            curr!.removecellWalls(curr!, next)
             curr = next
         } else if (this.stack.length > 0) {
             curr = this.stack.pop()
-            console.log(`popping ${curr.rowNum + " " + curr.columnNum}`)
+          
+            curr!.highlight('red')
         }
 
-        if(this.stack.length === 0){
+        if (this.stack.length === 0) {
+            console.log('stack is empty')
             return;
         }
+
         setTimeout(() => {
-          window.requestAnimationFrame(() => {
-                console.log('calling frame')
+            window.requestAnimationFrame(() => {
                 this.draw();
-            });
-        }, 300)
+            },);
+        },0)
 
     }
 
 }
+
 
 class Cell {
     rowNum: number;
@@ -132,7 +128,9 @@ class Cell {
         rows: number,
         columns: number
     ) {
-
+        ctx!.strokeStyle = 'black';
+        ctx!.fillStyle = "black"
+        ctx!.lineWidth = 1
         ctx?.beginPath();
         //start-top
         if (this.cellWalls.top) {
@@ -212,20 +210,20 @@ class Cell {
 
         if (neighbors.length > 0) {
             let random = Math.floor(Math.random() * neighbors.length)
-           
-            return neighbors[random]
+
+            return neighbors[random];
         } else {
-            return undefined
+            return undefined;
         }
     }
 
-    highlight(color : string) {
+    highlight(color: string) {
         ctx!.fillStyle = color
         ctx?.fillRect((this.columnNum * this.parentGridSize) / this.columnSize + 1, (this.rowNum * this.parentGridSize) / this.rowSize + 1, this.parentGridSize / this.columnSize - 3, this.parentGridSize / this.columnSize - 3,)
 
     }
 
-   removecellWalls(current: Cell, next: Cell) {
+    removecellWalls(current: Cell, next: Cell) {
         let x: number = current.columnNum - next.columnNum;
         let y: number = current.rowNum - next.rowNum
 
@@ -247,6 +245,6 @@ class Cell {
     }
 }
 
-let newMaze = new Maze(200,3, 3);
+let newMaze = new Maze(700, 50, 50);
 newMaze.setup();
 newMaze.draw()
