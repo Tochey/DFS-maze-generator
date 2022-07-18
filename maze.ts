@@ -1,6 +1,7 @@
 let maze = document.querySelector(".maze") as HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D | null = maze.getContext("2d");
-let curr: Cell
+let curr: Cell 
+let req : any;
 
 
 class Maze {
@@ -9,7 +10,7 @@ class Maze {
     rows: number;
     columns: number;
     grid: Array<Array<Cell>>;
-    stack: Array<unknown>;
+    stack: Array<Cell>;
 
     constructor(size: number, rows: number, columns: number) {
         this.size = size;
@@ -25,7 +26,7 @@ class Maze {
         for (let r = 0; r < this.rows; r++) {
             let row: Array<Cell> = [];
             for (let c = 0; c < this.columns; c++) {
-                let cell = new Cell(r, c, this.grid, this.size);
+                let cell = new Cell(r, c, this.grid, this.size, this.rows, this.columns);
                 row.push(cell);
             }
             this.grid.push(row);
@@ -35,38 +36,64 @@ class Maze {
     }
 
     draw() {
+        
         maze.width = this.size;
         maze.height = this.size;
-        maze.style.background = "black";
-        curr.visited = true
+        maze.style.background = "white";
+        ctx!.strokeStyle = 'black';
+        ctx!.fillStyle = "white"
+        ctx!.lineWidth = 1
+
+
+        ctx?.fillRect(curr.xPosition + 1, curr.yPosition + 1, curr.gridSize / curr.globalColumnSize - 2, curr.gridSize / curr.globalRowSize - 2)
 
         //draw out grid
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.columns; c++) {
-                this.grid[r][c].show(this.size, this.rows, this.columns);
-             
-        }  
-    }
-    for(let i = 0; i < this.rows * this.columns; i++){
+                let grid = this.grid
+                grid[r][c].drawCell(this.size, this.rows, this.columns);
+            }
+        }
+        curr.visited = true
+        curr.highlight('purple')
+       
+        let next = curr.pickRandomNeighbor();
 
-        let next = curr.checkNeighbors();
         if (next) {
             next.visited = true
-            ctx?.fillRect((next.rowNumber * this.size) / this.rows + 1, (next.columnNumber * this.size) / this.columns + 1, this.size / this.columns - 2, this.size / this.rows - 2)
+            this.stack.push(curr)
+            console.log( curr)
+            curr.removeWalls(curr, next)
             curr = next
+        } else if (this.stack.length > 0) {
+            curr = this.stack.pop()
+            console.log(`popping ${curr.rowNumber + " " + curr.columnNumber}`)
           
         }
-    }
- 
-}
-}
 
+        if(this.stack.length === 0){
+            return;
+        }
+        setTimeout(() => {
+         req =    window.requestAnimationFrame(() => {
+                console.log('calling frame')
+                this.draw();
+            });
+        }, 300)
+
+    }
+
+}
 
 class Cell {
     rowNumber: number;
     columnNumber: number;
     globalGrid: Array<Array<Cell>>;
     gridSize: number;
+    globalRowSize: number;
+    globalColumnSize: number
+    xPosition: number
+    yPosition: number
     visited: boolean;
     walls: {
         topWall: boolean;
@@ -79,12 +106,18 @@ class Cell {
         rowNumber: number,
         columnNumber: number,
         globalGrid: Array<Array<Cell>>,
-        gridSize: number
+        gridSize: number,
+        globalRowSize: number,
+        globalColumnSize: number
     ) {
         this.rowNumber = rowNumber;
         this.columnNumber = columnNumber;
         this.globalGrid = globalGrid;
         this.gridSize = gridSize;
+        this.globalRowSize = globalRowSize
+        this.globalColumnSize = globalColumnSize
+        this.xPosition = (this.columnNumber * this.gridSize) / this.globalColumnSize
+        this.yPosition = (this.rowNumber * this.gridSize) / this.globalRowSize
         this.visited = false;
         this.walls = {
             topWall: true,
@@ -95,54 +128,52 @@ class Cell {
     }
 
     drawCell(
-        x: number,
-        y: number,
+
         size: number,
-        columns: number,
-        rows: number
+        rows: number,
+        columns: number
     ) {
-       
+
         ctx?.beginPath();
         //start-top
         if (this.walls.topWall) {
-            ctx?.moveTo(x, y)
-            ctx?.lineTo(x + size / columns, y);
+            ctx?.moveTo(this.xPosition, this.yPosition)
+            ctx?.lineTo(this.xPosition + size / columns, this.yPosition);
             ctx?.stroke();
         }
 
         if (this.walls.rightWall) {
             //start-right
-            ctx?.moveTo(x + size / columns, y);
-            ctx?.lineTo(x + size / columns, y + size / rows);
+            ctx?.moveTo(this.xPosition + size / columns, this.yPosition);
+            ctx?.lineTo(this.xPosition + size / columns, this.yPosition + size / rows);
             ctx?.stroke()
         }
 
         if (this.walls.bottomWall) {
             //start bottom
-            ctx?.moveTo(x + size / columns, y + size / rows);
-            ctx?.lineTo(x, y + size / rows);
+            ctx?.moveTo(this.xPosition + size / columns, this.yPosition + size / rows);
+            ctx?.lineTo(this.xPosition, this.yPosition + size / rows);
             ctx?.stroke();
         }
         if (this.walls.leftWall) {
             //start left
-            ctx?.moveTo(x, y + size / rows);
-            ctx?.lineTo(x, y);
+            ctx?.moveTo(this.xPosition, this.yPosition + size / rows);
+            ctx?.lineTo(this.xPosition, this.yPosition);
             ctx?.stroke();
-        
+
         }
 
-       
-
+        if (this.visited) {
+            ctx?.fillRect(this.xPosition + 1, this.yPosition + 1, this.gridSize / this.globalColumnSize - 2, this.gridSize / this.globalRowSize - 2)
+        }
     }
 
-    checkNeighbors() {
+    pickRandomNeighbor() {
         let neighbors = []
         let topCell: Cell | undefined;
         let bottomCell: Cell | undefined;
         let rightCell: Cell | undefined;
         let leftCell: Cell | undefined;
-
-        //  if(this.columnNumber < 0 || this.rowNumber < 0 || this.columnNumber > columns - 1 || this.rowNumber > rows-1){
 
         //accessing the index of an undefined position throws an error
         try {
@@ -180,35 +211,43 @@ class Cell {
             neighbors.push(leftCell)
         }
 
-        // console.log(neighbors)
-
         if (neighbors.length > 0) {
             let random = Math.floor(Math.random() * neighbors.length)
-            
+           
             return neighbors[random]
         } else {
-            return undefined;
+            return undefined
+        }
+    }
+
+    highlight(color : string) {
+        ctx!.fillStyle = color
+        ctx?.fillRect((this.columnNumber * this.gridSize) / this.globalColumnSize + 1, (this.rowNumber * this.gridSize) / this.globalRowSize + 1, this.gridSize / this.globalColumnSize - 3, this.gridSize / this.globalColumnSize - 3,)
+
+    }
+
+   removeWalls(current: Cell, next: Cell) {
+        let x: number = current.columnNumber - next.columnNumber;
+        let y: number = current.rowNumber - next.rowNumber
+
+        if (x === 1) {
+            current.walls.leftWall = false
+            next.walls.rightWall = false
+        } else if (x === -1) {
+            current.walls.rightWall = false
+            next.walls.leftWall = false
         }
 
+        if (y === 1) {
+            current.walls.topWall = false
+            next.walls.bottomWall = false
+        } else if (y === -1) {
+            current.walls.bottomWall = false
+            next.walls.topWall = false
+        }
     }
-
-
-    show(size: number, rows: number, columns: number): void {
-        let x: number = (this.columnNumber * size) / columns;
-        let y: number = (this.rowNumber * size) / rows;
-
-        ctx!.strokeStyle = 'white';
-        ctx!.fillStyle = "red"
-        ctx!.lineWidth = 1
-    
-
-        this.drawCell(x, y, size, columns, rows)
-        
-    }
-
-
 }
 
-let newMaze = new Maze(700, 20, 20);
+let newMaze = new Maze(200,3, 3);
 newMaze.setup();
 newMaze.draw()
