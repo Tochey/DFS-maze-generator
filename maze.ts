@@ -1,7 +1,7 @@
-let maze = document.querySelector(".maze") as HTMLCanvasElement;
+let maze : HTMLCanvasElement = document.querySelector(".maze") as HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D | null = maze.getContext("2d");
 let curr: Cell 
-let req : any;
+
 
 
 class Maze {
@@ -26,7 +26,7 @@ class Maze {
         for (let r = 0; r < this.rows; r++) {
             let row: Array<Cell> = [];
             for (let c = 0; c < this.columns; c++) {
-                let cell = new Cell(r, c, this.grid, this.size, this.rows, this.columns);
+                let cell : Cell = new Cell(r, c, this.grid, this.size, this.rows, this.columns);
                 row.push(cell);
             }
             this.grid.push(row);
@@ -43,15 +43,15 @@ class Maze {
         ctx!.strokeStyle = 'black';
         ctx!.fillStyle = "white"
         ctx!.lineWidth = 1
-        curr.visited = true
+        curr.isVisited = true
 
 
-        ctx?.fillRect(curr.xPosition + 1, curr.yPosition + 1, curr.gridSize / curr.globalColumnSize - 2, curr.gridSize / curr.globalRowSize - 2)
+        ctx?.fillRect(curr.xPos + 1, curr.yPos + 1, curr.parentGridSize / curr.columnSize - 2, curr.parentGridSize / curr.rowSize - 2)
 
         //draw out grid
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.columns; c++) {
-                let grid = this.grid
+                let grid: Array<Array<Cell>> = this.grid
                 grid[r][c].drawCell(this.size, this.rows, this.columns);
             }
         }
@@ -61,21 +61,21 @@ class Maze {
         let next = curr.pickRandomNeighbor();
 
         if (next) {
-            next.visited = true
+            next.isVisited = true
             this.stack.push(curr)
             console.log( curr)
-            curr.removeWalls(curr, next)
+            curr.removecellWalls(curr, next)
             curr = next
         } else if (this.stack.length > 0) {
             curr = this.stack.pop()
-            console.log(`popping ${curr.rowNumber + " " + curr.columnNumber}`)
+            console.log(`popping ${curr.rowNum + " " + curr.columnNum}`)
         }
 
         if(this.stack.length === 0){
             return;
         }
         setTimeout(() => {
-         req =    window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
                 console.log('calling frame')
                 this.draw();
             });
@@ -86,49 +86,48 @@ class Maze {
 }
 
 class Cell {
-    rowNumber: number;
-    columnNumber: number;
-    globalGrid: Array<Array<Cell>>;
-    gridSize: number;
-    globalRowSize: number;
-    globalColumnSize: number
-    xPosition: number
-    yPosition: number
-    visited: boolean;
-    walls: {
-        topWall: boolean;
-        bottomWall: boolean;
-        leftWall: boolean;
-        rightWall: boolean;
+    rowNum: number;
+    columnNum: number;
+    parentGrid: Array<Array<Cell>>;
+    parentGridSize: number;
+    rowSize: number;
+    columnSize: number
+    xPos: number
+    yPos: number
+    isVisited: boolean;
+    cellWalls: {
+        top: boolean;
+        bottom: boolean;
+        left: boolean;
+        right: boolean;
     };
     //cell properties
     constructor(
-        rowNumber: number,
-        columnNumber: number,
-        globalGrid: Array<Array<Cell>>,
-        gridSize: number,
-        globalRowSize: number,
-        globalColumnSize: number
+        rowNum: number,
+        columnNum: number,
+        parentGrid: Array<Array<Cell>>,
+        parentGridSize: number,
+        rowSize: number,
+        columnSize: number
     ) {
-        this.rowNumber = rowNumber;
-        this.columnNumber = columnNumber;
-        this.globalGrid = globalGrid;
-        this.gridSize = gridSize;
-        this.globalRowSize = globalRowSize
-        this.globalColumnSize = globalColumnSize
-        this.xPosition = (this.columnNumber * this.gridSize) / this.globalColumnSize
-        this.yPosition = (this.rowNumber * this.gridSize) / this.globalRowSize
-        this.visited = false;
-        this.walls = {
-            topWall: true,
-            rightWall: true,
-            bottomWall: true,
-            leftWall: true,
+        this.rowNum = rowNum;
+        this.columnNum = columnNum;
+        this.parentGrid = parentGrid;
+        this.parentGridSize = parentGridSize;
+        this.rowSize = rowSize
+        this.columnSize = columnSize
+        this.xPos = (this.columnNum * this.parentGridSize) / this.columnSize
+        this.yPos = (this.rowNum * this.parentGridSize) / this.rowSize
+        this.isVisited = false;
+        this.cellWalls = {
+            top: true,
+            right: true,
+            bottom: true,
+            left: true,
         };
     }
 
     drawCell(
-
         size: number,
         rows: number,
         columns: number
@@ -136,35 +135,35 @@ class Cell {
 
         ctx?.beginPath();
         //start-top
-        if (this.walls.topWall) {
-            ctx?.moveTo(this.xPosition, this.yPosition)
-            ctx?.lineTo(this.xPosition + size / columns, this.yPosition);
+        if (this.cellWalls.top) {
+            ctx?.moveTo(this.xPos, this.yPos)
+            ctx?.lineTo(this.xPos + size / columns, this.yPos);
             ctx?.stroke();
         }
 
-        if (this.walls.rightWall) {
+        if (this.cellWalls.right) {
             //start-right
-            ctx?.moveTo(this.xPosition + size / columns, this.yPosition);
-            ctx?.lineTo(this.xPosition + size / columns, this.yPosition + size / rows);
+            ctx?.moveTo(this.xPos + size / columns, this.yPos);
+            ctx?.lineTo(this.xPos + size / columns, this.yPos + size / rows);
             ctx?.stroke()
         }
 
-        if (this.walls.bottomWall) {
+        if (this.cellWalls.bottom) {
             //start bottom
-            ctx?.moveTo(this.xPosition + size / columns, this.yPosition + size / rows);
-            ctx?.lineTo(this.xPosition, this.yPosition + size / rows);
+            ctx?.moveTo(this.xPos + size / columns, this.yPos + size / rows);
+            ctx?.lineTo(this.xPos, this.yPos + size / rows);
             ctx?.stroke();
         }
-        if (this.walls.leftWall) {
+        if (this.cellWalls.left) {
             //start left
-            ctx?.moveTo(this.xPosition, this.yPosition + size / rows);
-            ctx?.lineTo(this.xPosition, this.yPosition);
+            ctx?.moveTo(this.xPos, this.yPos + size / rows);
+            ctx?.lineTo(this.xPos, this.yPos);
             ctx?.stroke();
 
         }
 
-        if (this.visited) {
-            ctx?.fillRect(this.xPosition + 1, this.yPosition + 1, this.gridSize / this.globalColumnSize - 2, this.gridSize / this.globalRowSize - 2)
+        if (this.isVisited) {
+            ctx?.fillRect(this.xPos + 1, this.yPos + 1, this.parentGridSize / this.columnSize - 2, this.parentGridSize / this.rowSize - 2)
         }
     }
 
@@ -177,37 +176,37 @@ class Cell {
 
         //accessing the index of an undefined position throws an error
         try {
-            topCell = this.globalGrid[this.rowNumber - 1][this.columnNumber]
+            topCell = this.parentGrid[this.rowNum - 1][this.columnNum]
         } catch (error) {
 
             topCell = undefined
         }
-        rightCell = this.globalGrid[this.rowNumber][this.columnNumber + 1]
+        rightCell = this.parentGrid[this.rowNum][this.columnNum + 1]
 
         //accessing the index of an undefined position throws an error
         try {
-            bottomCell = this.globalGrid[this.rowNumber + 1][this.columnNumber]
+            bottomCell = this.parentGrid[this.rowNum + 1][this.columnNum]
         } catch (error) {
 
             bottomCell = undefined
         }
 
-        leftCell = this.globalGrid[this.rowNumber][this.columnNumber - 1]
+        leftCell = this.parentGrid[this.rowNum][this.columnNum - 1]
 
-        if (topCell && !topCell.visited) {
+        if (topCell && !topCell.isVisited) {
             neighbors.push(topCell)
         }
 
 
-        if (rightCell && !rightCell.visited) {
+        if (rightCell && !rightCell.isVisited) {
             neighbors.push(rightCell)
         }
 
-        if (bottomCell && !bottomCell.visited) {
+        if (bottomCell && !bottomCell.isVisited) {
             neighbors.push(bottomCell)
         }
 
-        if (leftCell && !leftCell.visited) {
+        if (leftCell && !leftCell.isVisited) {
             neighbors.push(leftCell)
         }
 
@@ -222,28 +221,28 @@ class Cell {
 
     highlight(color : string) {
         ctx!.fillStyle = color
-        ctx?.fillRect((this.columnNumber * this.gridSize) / this.globalColumnSize + 1, (this.rowNumber * this.gridSize) / this.globalRowSize + 1, this.gridSize / this.globalColumnSize - 3, this.gridSize / this.globalColumnSize - 3,)
+        ctx?.fillRect((this.columnNum * this.parentGridSize) / this.columnSize + 1, (this.rowNum * this.parentGridSize) / this.rowSize + 1, this.parentGridSize / this.columnSize - 3, this.parentGridSize / this.columnSize - 3,)
 
     }
 
-   removeWalls(current: Cell, next: Cell) {
-        let x: number = current.columnNumber - next.columnNumber;
-        let y: number = current.rowNumber - next.rowNumber
+   removecellWalls(current: Cell, next: Cell) {
+        let x: number = current.columnNum - next.columnNum;
+        let y: number = current.rowNum - next.rowNum
 
         if (x === 1) {
-            current.walls.leftWall = false
-            next.walls.rightWall = false
+            current.cellWalls.left = false
+            next.cellWalls.right = false
         } else if (x === -1) {
-            current.walls.rightWall = false
-            next.walls.leftWall = false
+            current.cellWalls.right = false
+            next.cellWalls.left = false
         }
 
         if (y === 1) {
-            current.walls.topWall = false
-            next.walls.bottomWall = false
+            current.cellWalls.top = false
+            next.cellWalls.bottom = false
         } else if (y === -1) {
-            current.walls.bottomWall = false
-            next.walls.topWall = false
+            current.cellWalls.bottom = false
+            next.cellWalls.top = false
         }
     }
 }
